@@ -49,7 +49,7 @@ namespace node {
       return;
     }
 
-    String::Utf8Value name(info[0]->ToString());
+    Nan::Utf8String name(info[0]->ToString());
 
     if (info.Length() == 2) {
       if (!info[1]->IsString()) {
@@ -57,7 +57,7 @@ namespace node {
         return;
       }
 
-      String::Utf8Value mod(info[1]->ToString());
+      Nan::Utf8String mod(info[1]->ToString());
       (void) snprintf(module, sizeof (module), "%s", *mod);
     } else if (info.Length() == 1) {
       // If no module name is provided, develop a synthetic module name based
@@ -86,20 +86,20 @@ namespace node {
     // create a DTraceProbe object
     v8::Local<Function> klass =
         Nan::New<FunctionTemplate>(DTraceProbe::constructor_template)->GetFunction();
-    v8::Local<Object> pd = klass->NewInstance();
+    v8::Local<Object> pd = Nan::NewInstance(klass).ToLocalChecked();
 
     // store in provider object
     DTraceProbe *probe = Nan::ObjectWrap::Unwrap<DTraceProbe>(pd->ToObject());
     obj->Set(info[0]->ToString(), pd);
 
     // reference the provider to avoid GC'ing it when only probes remain in scope.
-    Nan::ForceSet(pd, Nan::New<String>("__prov__").ToLocalChecked(), obj,
+    Nan::DefineOwnProperty(pd, Nan::New<String>("__prov__").ToLocalChecked(), obj,
         static_cast<PropertyAttribute>(DontEnum | ReadOnly | DontDelete));
 
     // add probe to provider
     for (int i = 0; i < USDT_ARG_MAX; i++) {
       if (i < info.Length() - 1) {
-        String::Utf8Value type(info[i + 1]->ToString());
+        Nan::Utf8String type(info[i + 1]->ToString());
 
         if (strncmp("json", *type, 4) == 0)
           probe->arguments[i] = new DTraceJsonArgument();
@@ -115,7 +115,7 @@ namespace node {
       }
     }
 
-    String::Utf8Value name(info[0]->ToString());
+    Nan::Utf8String name(info[0]->ToString());
     probe->probedef = usdt_create_probe(*name, *name, probe->argc, types);
     usdt_provider_add_probe(provider->provider, probe->probedef);
 
